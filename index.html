@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>수학 클래스Quest - 게이미피케이션 학습 관리 시스템</title>
+  
+  <!-- Google Fonts: Outfit, Plus Jakarta Sans, Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Canvas Confetti Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+  <!-- SheetJS Excel Library -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="theme-light">
+  <!-- Dynamic Confetti Canvas Container -->
+  <div id="confetti-container"></div>
+
+  <!-- App Main Wrapper -->
+  <div id="app" class="app-container">
+
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="logo-icon">
+          <span class="math-symbol">∑</span>
+          <span class="sparkle-dot"></span>
+        </div>
+        <div class="logo-text">
+          <h1>수학 클래스Quest</h1>
+          <span class="sub-tag" id="current-class-tag">2학년 1반</span>
+        </div>
+      </div>
+
+      <!-- Class Selector & View Controls -->
+      <div class="nav-controls">
+        <div class="class-select-wrapper">
+          <select id="class-select" class="custom-select" aria-label="학급 선택">
+            <!-- Dynamic Class Options -->
+          </select>
+        </div>
+
+        <div id="mode-badge-container">
+          <!-- Mode status indicator (Student Mode vs Teacher Mode) -->
+        </div>
+
+        <button id="switch-mode-btn" class="btn btn-primary btn-sparkle">
+          <span class="btn-icon">🔐</span>
+          <span id="switch-mode-text">교사 모드 전환</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Container (Rendered Dynamically) -->
+    <main id="main-content" class="main-layout">
+      <!-- 
+        Views rendered here via app.js:
+        1. Student Profile Selector (Initial state or profile switch)
+        2. Student View Dashboard
+        3. Teacher View Dashboard
+      -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>ⓒ 2026 수학 클래스Quest | 중학교 2학년 게이미피케이션 학습 관리 시스템</p>
+    </footer>
+  </div>
+
+  <!-- MODALS CONTAINER -->
+
+  <!-- 1. Teacher PIN Authentication Modal -->
+  <div id="pin-modal" class="modal-overlay hidden">
+    <div class="modal-card modal-sm animate-pop">
+      <div class="modal-header">
+        <h3>🔒 교사 모드 인증</h3>
+        <button class="modal-close" data-close="pin-modal">&times;</button>
+      </div>
+      <div class="modal-body text-center">
+        <p class="modal-desc">교사 화면으로 전환하기 위해 4자리 PIN 번호를 입력하세요.</p>
+        <div class="pin-display" id="pin-display">
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+        </div>
+        <div class="keypad-grid">
+          <button class="key-btn" data-key="1">1</button>
+          <button class="key-btn" data-key="2">2</button>
+          <button class="key-btn" data-key="3">3</button>
+          <button class="key-btn" data-key="4">4</button>
+          <button class="key-btn" data-key="5">5</button>
+          <button class="key-btn" data-key="6">6</button>
+          <button class="key-btn" data-key="7">7</button>
+          <button class="key-btn" data-key="8">8</button>
+          <button class="key-btn" data-key="9">9</button>
+          <button class="key-btn key-action" data-key="clear">C</button>
+          <button class="key-btn" data-key="0">0</button>
+          <button class="key-btn key-action" data-key="back">&;</button>
+        </div>
+        <p class="pin-hint">기본 PIN 번호: <code>1234</code></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Individual Currency Grant/Deduct Modal (Teacher) -->
+  <div id="currency-modal" class="modal-overlay hidden">
+    <div class="modal-card animate-pop">
+      <div class="modal-header">
+        <h3 id="currency-modal-title">💰 화폐 및 경험치 지급/차감</h3>
+        <button class="modal-close" data-close="currency-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="target-student-info" id="target-student-banner">
+          <!-- Target Student Name & Current Status -->
+        </div>
+
+        <form id="currency-form">
+          <div class="form-group">
+            <label for="currency-type">구분</label>
+            <div class="radio-group-toggle">
+              <label class="radio-btn active">
+                <input type="radio" name="currency-action" value="grant" checked>
+                <span>➕ 지급 (보상)</span>
+              </label>
+              <label class="radio-btn">
+                <input type="radio" name="currency-action" value="deduct">
+                <span>➖ 차감 (차감)</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>빠른 금액 선택</label>
+            <div class="quick-amounts">
+              <button type="button" class="btn btn-chip" data-amount="100">+100원</button>
+              <button type="button" class="btn btn-chip" data-amount="200">+200원</button>
+              <button type="button" class="btn btn-chip" data-amount="500">+500원</button>
+              <button type="button" class="btn btn-chip" data-amount="1000">+1,000원</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="currency-amount">금액 (원 = XP)</label>
+            <input type="number" id="currency-amount" class="custom-input" placeholder="금액 입력" min="1" step="50" required>
+          </div>
+
+          <div class="form-group">
+            <label for="currency-reason">지급/차감 사유</label>
+            <input type="text" id="currency-reason" class="custom-input" placeholder="예: 수학 탐구 활동 정답 발표" required>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-close="currency-modal">취소</button>
+            <button type="submit" class="btn btn-success">확인 적용</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. All Students Bulk Grant Modal (Teacher) -->
+  <div id="bulk-modal" class="modal-overlay hidden">
+    <div class="modal-card animate-pop">
+      <div class="modal-header">
+        <h3>✨ 학급 전체 학생 일괄 화폐 지급</h3>
+        <button class="modal-close" data-close="bulk-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">현재 선택된 학급의 모든 학생에게 동시에 화폐와 XP를 지급합니다.</p>
+        <form id="bulk-form">
+          <div class="form-group">
+            <label>빠른 금액 선택</label>
+            <div class="quick-amounts">
+              <button type="button" class="btn btn-chip" data-bulk-amount="100">+100원</button>
+              <button type="button" class="btn btn-chip" data-bulk-amount="200">+200원</button>
+              <button type="button" class="btn btn-chip" data-bulk-amount="500">+500원</button>
+              <button type="button" class="btn btn-chip" data-bulk-amount="1000">+1,000원</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="bulk-amount">지급 금액 (1인당 원)</label>
+            <input type="number" id="bulk-amount" class="custom-input" placeholder="지급 금액 입력" min="1" step="50" required>
+          </div>
+
+          <div class="form-group">
+            <label for="bulk-reason">지급 사유</label>
+            <input type="text" id="bulk-reason" class="custom-input" placeholder="예: 수학 단원 평가 전체 참여 보상" required>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-close="bulk-modal">취소</button>
+            <button type="submit" class="btn btn-primary">전체 일괄 지급</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Manage Shop Modal (Teacher) -->
+  <div id="shop-manage-modal" class="modal-overlay hidden">
+    <div class="modal-card modal-lg animate-pop">
+      <div class="modal-header">
+        <h3>🛍️ 학급 상점 아이템 및 쿠폰 관리</h3>
+        <button class="modal-close" data-close="shop-manage-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="shop-manage-layout">
+          <!-- Item Add/Edit Form -->
+          <div class="shop-form-section">
+            <h4 id="shop-form-title">➕ 새 상품/쿠폰 등록</h4>
+            <form id="shop-item-form">
+              <input type="hidden" id="shop-item-id">
+              <div class="form-group">
+                <label for="item-name">상품/쿠폰명</label>
+                <input type="text" id="item-name" class="custom-input" placeholder="예: 자리 배치 지정권" required>
+              </div>
+              <div class="form-row">
+                <div class="form-group col">
+                  <label for="item-price">가격 (원)</label>
+                  <input type="number" id="item-price" class="custom-input" placeholder="2000" min="0" step="100" required>
+                </div>
+                <div class="form-group col">
+                  <label for="item-category">유형</label>
+                  <select id="item-category" class="custom-select">
+                    <option value="coupon">🎟️ 쿠폰</option>
+                    <option value="item">✏️ 실물 물품</option>
+                    <option value="perk">🌟 혜택</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="item-icon">대표 이모지/아이콘</label>
+                <input type="text" id="item-icon" class="custom-input" placeholder="🎟️" value="🎟️" required>
+              </div>
+              <div class="form-group">
+                <label for="item-desc">설명</label>
+                <input type="text" id="item-desc" class="custom-input" placeholder="원하는 자리를 선택할 수 있는 1회 쿠폰">
+              </div>
+              <div class="form-actions-inline">
+                <button type="submit" class="btn btn-success" id="shop-submit-btn">등록하기</button>
+                <button type="button" class="btn btn-secondary hidden" id="shop-cancel-edit-btn">수정 취소</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Item List Table -->
+          <div class="shop-list-section">
+            <h4>📋 등록된 상품 목록</h4>
+            <div class="table-responsive">
+              <table class="custom-table" id="shop-items-table">
+                <thead>
+                  <tr>
+                    <th>아이콘</th>
+                    <th>상품명</th>
+                    <th>유형</th>
+                    <th>가격</th>
+                    <th>관리</th>
+                  </tr>
+                </thead>
+                <tbody id="shop-items-tbody">
+                  <!-- Dynamic Item Rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Manage Class Missions Modal (Teacher) -->
+  <div id="mission-manage-modal" class="modal-overlay hidden">
+    <div class="modal-card modal-lg animate-pop">
+      <div class="modal-header">
+        <h3>🎯 오늘의 수학 수업 미션 관리</h3>
+        <button class="modal-close" data-close="mission-manage-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="mission-manage-layout">
+          <!-- Mission Add Form -->
+          <div class="mission-form-section">
+            <h4>➕ 새 수업 미션 생성</h4>
+            <form id="mission-form">
+              <div class="form-group">
+                <label for="mission-title">미션 제목</label>
+                <input type="text" id="mission-title" class="custom-input" placeholder="예: 수학 형성평가 제출하기" required>
+              </div>
+              <div class="form-group">
+                <label for="mission-desc">상세 설명</label>
+                <input type="text" id="mission-desc" class="custom-input" placeholder="수업 시간 종료 전 탐구 학습지 제출">
+              </div>
+              <div class="form-row">
+                <div class="form-group col">
+                  <label for="mission-reward">보상 화폐 (원=XP)</label>
+                  <input type="number" id="mission-reward" class="custom-input" placeholder="200" min="0" step="50" value="200" required>
+                </div>
+                <div class="form-group col">
+                  <label for="mission-icon">이모지</label>
+                  <input type="text" id="mission-icon" class="custom-input" placeholder="📐" value="📐" required>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">미션 추가</button>
+            </form>
+          </div>
+
+          <!-- Existing Missions List -->
+          <div class="mission-list-section">
+            <h4>📌 등록된 수업 미션 목록</h4>
+            <div id="mission-manage-list" class="mission-cards-grid">
+              <!-- Dynamic Missions -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Excel Student Import Modal (Teacher) -->
+  <div id="excel-import-modal" class="modal-overlay hidden">
+    <div class="modal-card modal-lg animate-pop">
+      <div class="modal-header">
+        <h3>📁 학생 명단 엑셀(.xlsx / .csv) 일괄 등록</h3>
+        <button class="modal-close" data-close="excel-import-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="excel-import-instructions" style="background: var(--primary-light); padding: 16px; border-radius: var(--radius-md); margin-bottom: 20px;">
+          <h4 style="color: var(--primary); font-size: 14px; font-weight: 700; margin-bottom: 6px;">💡 엑셀 양식 작성 안내</h4>
+          <p style="font-size: 13px; color: var(--text-main);">
+            엑셀 파일에 <strong>'번호'</strong>(A열)와 <strong>'이름'</strong>(B열) 항목을 작성하여 업로드하세요.<br>
+            (헤더가 없어도 1열: 번호, 2열: 이름 또는 1열: 이름 형태로 자동 인식됩니다.)
+          </p>
+          <div style="margin-top: 10px;">
+            <button type="button" class="btn btn-sm btn-secondary" id="btn-download-excel-template">
+              📥 Sample 엑셀 서식 다운로드
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>엑셀/CSV 파일 선택</label>
+          <div class="excel-drop-zone" id="excel-drop-zone">
+            <span style="font-size: 36px; display: block; margin-bottom: 8px;">📊</span>
+            <p style="font-weight: 700; font-size: 14px; color: var(--primary);">엑셀(.xlsx, .csv) 파일을 클릭하여 선택하거나 여기로 드래그하세요</p>
+            <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" style="display: none;">
+          </div>
+        </div>
+
+        <!-- Live Preview Table Container -->
+        <div id="excel-preview-container" class="hidden" style="margin-top: 20px;">
+          <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 10px;">📋 불러온 학생 명단 미리보기 (<span id="excel-student-count">0</span>명)</h4>
+          <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>번호</th>
+                  <th>학생 이름</th>
+                  <th>상태</th>
+                </tr>
+              </thead>
+              <tbody id="excel-preview-tbody">
+                <!-- Preview Rows -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-close="excel-import-modal">취소</button>
+            <button type="button" class="btn btn-success" id="btn-confirm-excel-import">
+              ✓ 명단 적용하기 (기존 명단 대체)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/utils.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
